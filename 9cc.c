@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <string.h>
 
 // トークンの種類
 typedef enum
@@ -19,7 +20,8 @@ struct Token
     TokenKind kind; // トークンの型
     Token* next; // 次の入力トークン
     int val; // kindがTK_NUMの場合、その数値
-    char* str; // トークンもじれ悦
+    char* str; // トークン文字列
+    int len; // トークンの長さ
 };
 
 // 現在着目しているトークン
@@ -58,9 +60,11 @@ void error_at(char* loc, char* fmt, ...)
 
 // 次のトークンが期待している記号の時には、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char op)
+bool consume(char* op)
 {
-    if(token->kind != TK_RESERVED || token->str[0] != op)
+    if(token->kind != TK_RESERVED ||
+       strlen(op) != token->len ||
+       memcmp(token->str, op, token->len))
         return false;
     token = token->next;
 
@@ -69,10 +73,12 @@ bool consume(char op)
 
 // 次のトークンが期待している記号の時には、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する
-void expect(char op)
+void expect(char* op)
 {
-    if(token->kind != TK_RESERVED || token->str[0] != op)
-        error_at(token->str, "'%c'ではありません", op);
+    if(token->kind != TK_RESERVED ||
+       strlen(op) != token->len ||
+       memcmp(token->str, op, token->len))
+        error_at(token->str, "'%s'ではありません", op);
     token = token->next;
 }
 
@@ -94,12 +100,16 @@ bool at_eof()
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token* new_token(TokenKind kind, Token* cur, char* str)
+Token* new_token(TokenKind kind, Token* cur, char* str, int len)
 {
     Token* tok = calloc(1, sizeof(Token));
     tok->kind = kind;
+    tok->next = NULL;
     tok->str = str;
+    tok->len = len;
     cur->next = tok;
+    // printf("new_token: %s\n", str);
+    // printf("new_token len: %d\n", tok->len);
 
     return tok;
 }
@@ -121,21 +131,23 @@ Token* tokenize(char* p)
 
         if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')')
         {
-            cur = new_token(TK_RESERVED, cur, p++);
+            cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
         }
 
         if(isdigit(*p))
         {
-            cur = new_token(TK_NUM, cur, p);
+            // printf("row p: %c\n", *p);
+            cur = new_token(TK_NUM, cur, p, 1);
             cur->val = strtol(p, &p, 10);
+            // printf("p: %d\n", cur->val);
             continue;
         }
 
         error_at(token->str, "トークナイズできません");
     }
 
-    new_token(TK_EOF, cur, p);
+    new_token(TK_EOF, cur, p, 1);
     return head.next;
 }
 
@@ -188,9 +200,9 @@ Node* expr()
 
     for(;;)
     {
-        if(consume('+'))
+        if(consume("+"))
             node = new_node(ND_ADD, node, mul());
-        else if(consume('-'))
+        else if(consume("-"))
             node = new_node(ND_SUB, node, mul());
         else
             return node;
@@ -203,9 +215,9 @@ Node* mul()
 
     for(;;)
     {
-        if(consume('*'))
+        if(consume("*"))
             node = new_node(ND_MUL, node, unary());
-        else if(consume('/'))
+        else if(consume("/"))
             node = new_node(ND_DIV, node, unary());
         else
             return node;
@@ -214,9 +226,9 @@ Node* mul()
 
 Node* unary()
 {
-    if(consume('+'))
+    if(consume("+"))
         return primary();
-    if(consume('-'))
+    if(consume("-"))
         return new_node(ND_SUB, new_node_num(0), primary());
     
     return primary();
@@ -225,10 +237,10 @@ Node* unary()
 Node* primary()
 {
     // 次のトークンが"("なら、"(" expr ")"のはず
-    if(consume('('))
+    if(consume("("))
     {
         Node* node = expr();
-        expect(')');
+        expect(")");
         return node;
     }
 
