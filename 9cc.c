@@ -129,7 +129,16 @@ Token* tokenize(char* p)
             continue;
         }
 
-        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')')
+        // 二文字記号のトークナイズ
+        if(strncmp(p, "==", 2)==0 || strncmp(p, "!=", 2)==0 || strncmp(p, "<=", 2)==0 || strncmp(p, ">=", 2)==0)
+        {
+            cur = new_token(TK_RESERVED, cur, p, 2);
+            p += 2;
+            continue;
+        }
+
+        // 一文字記号のトークナイズ
+        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>')
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -154,6 +163,12 @@ Token* tokenize(char* p)
 // 抽象構文木のノードの種類
 typedef enum
 {
+    ND_EQUAL, // ==
+    ND_NOT_EQUAL, // !=
+    ND_LESS_THAN, // <
+    ND_LESS_THAN_EQUAL, // <=
+    ND_MORE_THAN, // >
+    ND_MORE_THAN_EQUAL, // >=
     ND_ADD, // +
     ND_SUB, // -
     ND_MUL, // *
@@ -190,11 +205,57 @@ Node* new_node_num(int val)
 
     return node;
 }
+
+Node* equality();
+Node* relational();
+Node* add();
 Node* mul();
 Node* unary();
 Node* primary();
 
 Node* expr()
+{
+    Node* node = equality();
+
+    return node;
+}
+
+Node* equality()
+{
+    Node* node = relational();
+
+    for(;;)
+    {
+        if(consume("=="))
+            node = new_node(ND_EQUAL, node, relational());
+        else if(consume("!="))
+            node = new_node(ND_NOT_EQUAL, node, relational());
+        else
+            return node;
+        
+    }
+}
+
+Node* relational()
+{
+    Node* node = add();
+
+    for(;;)
+    {
+        if(consume("<"))
+            node = new_node(ND_LESS_THAN, node, add());
+        else if(consume("<="))
+            node = new_node(ND_LESS_THAN_EQUAL, node, add());
+        else if(consume(">"))
+            node = new_node(ND_MORE_THAN, node, add());
+        else if(consume(">="))
+            node = new_node(ND_MORE_THAN_EQUAL, node, add());
+        else
+            return node;
+    }
+}
+
+Node* add()
 {
     Node* node = mul();
 
@@ -204,7 +265,7 @@ Node* expr()
             node = new_node(ND_ADD, node, mul());
         else if(consume("-"))
             node = new_node(ND_SUB, node, mul());
-        else
+        else 
             return node;
     }
 }
@@ -278,6 +339,37 @@ void gen(Node* node)
         printf("    cqo\n");
         printf("    idiv rdi\n");
         break;
+    case ND_EQUAL:
+        printf("    cmp rax, rdi\n");
+        printf("    sete al\n");
+        printf("    movzb rax, al\n");
+        break;
+    case ND_NOT_EQUAL:
+        printf("    cmp rax, rdi\n");
+        printf("    setne al\n");
+        printf("    movzb rax, al\n");
+        break;
+    case ND_LESS_THAN:
+        printf("    cmp rax, rdi\n");
+        printf("    setl al\n");
+        printf("    movzb rax, al\n");
+        break;
+    case ND_LESS_THAN_EQUAL:
+        printf("    cmp rax, rdi\n");
+        printf("    setle al\n");
+        printf("    movzb rax, al\n");
+        break;
+    case ND_MORE_THAN:
+        printf("    cmp rdi, rax\n");
+        printf("    setl al\n");
+        printf("    movzb rax, al\n");
+        break;
+    case ND_MORE_THAN_EQUAL:
+        printf("    cmp rdi, rax\n");
+        printf("    setle al\n");
+        printf("    movzb rax, al\n");
+        break;
+
     }
 
     printf("    push rax\n");
