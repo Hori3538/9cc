@@ -45,6 +45,16 @@ bool consume(char* op)
     return true;
 }
 
+Token* consume_ident()
+{
+    if(token->kind != TK_IDENT)
+        return NULL;
+    Token* ident_token = token;
+    token = token->next;
+
+    return ident_token;
+}
+
 void expect(char* op)
 {
     if(token->kind != TK_RESERVED ||
@@ -69,13 +79,12 @@ bool at_eof()
     return token->kind == TK_EOF;
 }
 
-Token* new_token(TokenKind kind, Token* cur, char* str, int len)
+Token* new_token(TokenKind kind, Token* cur, char* str)
 {
     Token* tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->next = NULL;
     tok->str = str;
-    tok->len = len;
     cur->next = tok;
 
     return tok;
@@ -98,30 +107,44 @@ Token* tokenize(char* p)
         // 二文字記号のトークナイズ
         if(strncmp(p, "==", 2)==0 || strncmp(p, "!=", 2)==0 || strncmp(p, "<=", 2)==0 || strncmp(p, ">=", 2)==0)
         {
-            cur = new_token(TK_RESERVED, cur, p, 2);
+            cur = new_token(TK_RESERVED, cur, p);
+            cur->len = 2;
             p += 2;
             continue;
         }
 
         // 一文字記号のトークナイズ
-        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>')
+        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || 
+           *p == '(' || *p == ')' || *p == '<' || *p == '>' ||
+           *p == '=' || *p == ';')
         {
-            cur = new_token(TK_RESERVED, cur, p++, 1);
+            cur = new_token(TK_RESERVED, cur, p++);
+            cur->len = 1;
             continue;
         }
 
+        // 数字のトークナイズ
         if(isdigit(*p))
         {
-            // printf("row p: %c\n", *p);
-            cur = new_token(TK_NUM, cur, p, 1);
+            cur = new_token(TK_NUM, cur, p);
+            cur->len = 1;
             cur->val = strtol(p, &p, 10);
-            // printf("p: %d\n", cur->val);
+            continue;
+        }
+
+        // 一文字変数のトークナイズ
+        if('a' <= *p && *p <= 'z')
+        {
+            cur = new_token(TK_IDENT, cur, p++);
+            cur->len = 1;
             continue;
         }
 
         error_at(token->str, "トークナイズできません");
     }
 
-    new_token(TK_EOF, cur, p, 1);
+    new_token(TK_EOF, cur, p);
+    cur->len = 1;
+
     return head.next;
 }

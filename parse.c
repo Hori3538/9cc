@@ -20,10 +20,38 @@ Node* new_node_num(int val)
     return node;
 }
 
+Node* code[100];
+
+Node* program()
+{
+    int i = 0;
+    while (!at_eof())
+        code[i++] = stmt();
+    code[i] = NULL;    
+}
+
+Node* stmt()
+{
+    Node* node = expr();
+    expect(";");
+
+    return node;
+}
+
 Node* expr()
+{
+    Node* node = assign();
+
+    return node;
+}
+
+Node* assign()
 {
     Node* node = equality();
 
+    if(consume("="))
+        node = new_node(ND_ASSIGN, node, assign());
+    
     return node;
 }
 
@@ -109,6 +137,17 @@ Node* primary()
     {
         Node* node = expr();
         expect(")");
+        return node;
+    }
+
+    // 次のトークンが識別子ならND_LVAR型のノードを返す
+    Token* token = consume_ident();
+    if(token)
+    {
+        Node* node = calloc(1, sizeof(Node));
+        node->kind = ND_LVAR;
+        node->offset = (token->str[0] - 'a' + 1) * 8;
+
         return node;
     }
 
