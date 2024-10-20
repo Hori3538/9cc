@@ -49,11 +49,25 @@ struct Node
     int offset; // kindがND_LVARの場合のみ使う
 };
 
+typedef struct LVar LVar;
+// ローカル変数の型
+struct LVar
+{
+    LVar* next; // 次の変数かNULL
+    char* name; //変数の名前
+    int len; // 名前の長さ
+    int offset; // RBPからのオフセット
+};
+
 // 現在着目しているトークン
 extern Token* token;
 // 入力プログラム
 extern char* user_input;
 extern Node* code[100];
+// ローカル変数
+extern LVar* locals;
+// ローカル変数のカウンタ
+extern int local_count;
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -80,6 +94,8 @@ Token* new_token(TokenKind kind, Token* cur, char* str);
 Token* tokenize(char* p);
 Node* new_node(NodeKind kind, Node* lhs, Node* rhs);
 Node* new_node_num(int val);
+// 変数を検索する。見つからなかった場合はNULLを返す。
+LVar* find_lvar(Token* token);
 
 Node* program();
 Node* stmt();

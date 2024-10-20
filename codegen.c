@@ -23,6 +23,8 @@ void gen(Node* node)
         printf("    pop rax\n");
         printf("    mov rax, [rax]\n");
         printf("    push rax\n");
+        // printf("    sub rsp, 8\n");
+
         return;
     case ND_ASSIGN:
         gen_lval(node->lhs);

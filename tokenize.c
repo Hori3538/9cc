@@ -132,11 +132,15 @@ Token* tokenize(char* p)
             continue;
         }
 
-        // 一文字変数のトークナイズ
+        // 複数文字変数のトークナイズ(変数は小文字のアルファベットのみからなら文字列)
         if('a' <= *p && *p <= 'z')
         {
-            cur = new_token(TK_IDENT, cur, p++);
-            cur->len = 1;
+            int len = 1;
+            while('a' <= *(p+len) && 'z' >= *(p+len))
+                len++;
+            cur = new_token(TK_IDENT, cur, p);
+            p += len;
+            cur->len = len;
             continue;
         }
 

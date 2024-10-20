@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "9cc.h"
 
 int main(int argc, char** argv)
@@ -12,9 +13,13 @@ int main(int argc, char** argv)
     // 結果はcodeに保存される   
     user_input = argv[1];
     token = tokenize(user_input);
+
+    locals = calloc(1, sizeof(LVar));
+    locals->next = NULL;
+    locals->offset = 0;
+
     program();
 
-    
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
     printf(".globl main\n");
@@ -24,7 +29,8 @@ int main(int argc, char** argv)
     // 変数26個分の領域を確保する
     printf("    push rbp\n");
     printf("    mov rbp, rsp\n");
-    printf("    sub rsp, 208\n");
+    // printf("    sub rsp, 208\n");
+    printf("    sub rsp, %d\n", local_count * 8);
 
     // 先頭の式から順にコード生成
     for(int i=0; code[i]; i++)

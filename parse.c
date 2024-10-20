@@ -1,4 +1,6 @@
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "9cc.h"
 
 Node* new_node(NodeKind kind, Node* lhs, Node* rhs)
@@ -18,6 +20,17 @@ Node* new_node_num(int val)
     node->val = val;
 
     return node;
+}
+
+LVar* locals;
+
+LVar* find_lvar(Token* token)
+{
+    for(LVar* var = locals; var; var = var->next)
+        if(var->len == token->len && !memcmp(token->str, var->name, var->len))
+            return var;
+    
+    return NULL;
 }
 
 Node* code[100];
@@ -130,6 +143,7 @@ Node* unary()
     return primary();
 }
 
+int local_count = 0;
 Node* primary()
 {
     // 次のトークンが"("なら、"(" expr ")"のはず
@@ -146,7 +160,23 @@ Node* primary()
     {
         Node* node = calloc(1, sizeof(Node));
         node->kind = ND_LVAR;
-        node->offset = (token->str[0] - 'a' + 1) * 8;
+
+        LVar* lvar = find_lvar(token);
+        if(lvar)
+        {
+            node->offset = lvar->offset;
+        }
+        else
+        {
+            lvar = calloc(1, sizeof(LVar));
+            lvar->next = locals;
+            lvar->name = token->str;
+            lvar->len = token->len;
+            lvar->offset = locals->offset + 8;
+            node->offset = lvar->offset;
+            locals = lvar;
+            local_count++;
+        }
 
         return node;
     }

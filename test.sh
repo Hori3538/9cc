@@ -41,5 +41,10 @@ assert 2 \
 assert 5 \
 "d = 2*2*2;
 e = 8- 6/2;"
+assert 3 "ffo=3;"
+assert 6 \
+"foo = 1;
+bar = 2 + 3;
+foo + bar;"
 
 echo OK
