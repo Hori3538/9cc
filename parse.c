@@ -45,7 +45,18 @@ Node* program()
 
 Node* stmt()
 {
-    Node* node = expr();
+    Node* node;
+
+    if(consume_return(TK_RETURN))
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_RETURN;
+        node->lhs = expr();
+    }
+    else
+    {
+        node = expr();
+    }
     expect(";");
 
     return node;

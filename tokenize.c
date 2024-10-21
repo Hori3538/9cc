@@ -45,6 +45,15 @@ bool consume(char* op)
     return true;
 }
 
+bool consume_return(TokenKind token_kind)
+{
+    if(token->kind != token_kind)
+        return false;
+    token = token->next;
+
+    return true;
+}
+
 Token* consume_ident()
 {
     if(token->kind != TK_IDENT)
@@ -77,6 +86,14 @@ int expect_number()
 bool at_eof()
 {
     return token->kind == TK_EOF;
+}
+
+int is_alnum(char c)
+{
+    return ('a' <= c && 'z' >= c) ||
+           ('A' <= c && 'Z' >= c) ||
+           ('0' <= c && '9' >= c) ||
+           (c == '_');
 }
 
 Token* new_token(TokenKind kind, Token* cur, char* str)
@@ -132,11 +149,20 @@ Token* tokenize(char* p)
             continue;
         }
 
+        // returnのトークナイズ
+        if(strncmp(p, "return", 6) == 0 && !is_alnum(p[6]))
+        {
+            cur = new_token(TK_RETURN, cur, p);
+            cur->len = 6;
+            p += 6;
+            continue;
+        }
+
         // 複数文字変数のトークナイズ(変数は小文字のアルファベットのみからなら文字列)
-        if('a' <= *p && *p <= 'z')
+        if(is_alnum(*p))
         {
             int len = 1;
-            while('a' <= *(p+len) && 'z' >= *(p+len))
+            while(is_alnum(*(p+len)))
                 len++;
             cur = new_token(TK_IDENT, cur, p);
             p += len;

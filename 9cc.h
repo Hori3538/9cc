@@ -6,6 +6,7 @@ typedef enum
     TK_RESERVED, // 記号
     TK_IDENT, // 識別子
     TK_NUM, // 整数トークン
+    TK_RETURN, // returnトークン
     TK_EOF, // 入力の終わり表すトークン
 } TokenKind;
 
@@ -36,6 +37,7 @@ typedef enum
     ND_NUM, // 整数
     ND_ASSIGN, // =
     ND_LVAR, // ローカル変数
+    ND_RETURN, // return
 } NodeKind;
 
 typedef struct Node Node;
@@ -77,6 +79,7 @@ void error_at(char* loc, char* fmt, ...);
 // 次のトークンが期待している記号の時には、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char* op);
+bool consume_return(TokenKind token_kind);
 // 次のトークンが識別子の時にはトークンを1つ読み進めて識別子のトークンを返す。
 // それ以外の場合にはNULLを返す。
 Token* consume_ident();
@@ -87,11 +90,13 @@ void expect(char* op);
 // それ以外の場合にはエラーを報告する。
 int expect_number();
 bool at_eof();
-
+int is_alnum(char c);
 // 新しいトークンを作成してcurに繋げる
 Token* new_token(TokenKind kind, Token* cur, char* str);
 // 入力文字列pをトークナイズしてそれを返す
 Token* tokenize(char* p);
+
+
 Node* new_node(NodeKind kind, Node* lhs, Node* rhs);
 Node* new_node_num(int val);
 // 変数を検索する。見つからなかった場合はNULLを返す。
